@@ -421,7 +421,8 @@ function App() {
                 AI is responding...
               </div>
             )}
-            {!isListening && !aiSpeaking && gameMode !== 'MainMenu' && (
+            {/* Button is only rendered if gameMode !== 'MainMenu' due to parent conditional */}
+            {!isListening && !aiSpeaking && (
               <button className="btn-speak-now" onClick={startListening}>
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" className="bi bi-mic-fill" viewBox="0 0 16 16">
                   <path d="M5 3a3 3 0 0 1 6 0v5a3 3 0 0 1-6 0z"/>
