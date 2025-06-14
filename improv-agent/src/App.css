@@ -1,0 +1,65 @@
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #f4f7f6; /* Light gray background */
+  color: #333; /* Darker text for readability */
+}
+
+.App {
+  /* Styles for the main app container can go here if needed */
+  /* For now, relying mostly on Bootstrap's container class */
+}
+
+.card-body p {
+  margin-bottom: 0.5rem; /* Spacing between messages */
+}
+
+.badge {
+  font-size: 0.9em;
+  font-weight: 500;
+}
+
+/* Optional: Style for the interim transcript to make it distinct */
+.text-muted em {
+  font-style: italic;
+  color: #6c757d !important; /* Bootstrap's muted color */
+}
+
+/* Custom styles for a more polished look */
+header h1 {
+  color: #007bff; /* Primary color for the main title */
+}
+
+.btn-primary {
+  background-color: #007bff;
+  border-color: #007bff;
+}
+
+.btn-secondary {
+  background-color: #6c757d;
+  border-color: #6c757d;
+}
+
+.btn-success {
+  background-color: #28a745;
+  border-color: #28a745;
+}
+
+.alert-info {
+  background-color: #e2f3ff;
+  color: #004085;
+  border-color: #b8daff;
+}
+
+.alert-light {
+  background-color: #f8f9fa;
+  color: #383d41;
+  border-color: #e2e3e5;
+}
+
+footer p {
+  font-size: 0.85em;
+}
