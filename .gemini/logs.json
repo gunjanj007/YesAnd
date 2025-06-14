@@ -1,0 +1,30 @@
+[
+  {
+    "sessionId": 1749943250,
+    "messageId": 0,
+    "type": "user",
+    "message": "can we use gemini live instead of inflection here?",
+    "timestamp": "2025-06-14T23:24:48.077Z"
+  },
+  {
+    "sessionId": 1749943250,
+    "messageId": 1,
+    "type": "user",
+    "message": "okay so I want an actual agent LLM to talk, maybe we can use gemini live api?",
+    "timestamp": "2025-06-14T23:26:38.619Z"
+  },
+  {
+    "sessionId": 1749943250,
+    "messageId": 2,
+    "type": "user",
+    "message": "yep sure",
+    "timestamp": "2025-06-14T23:27:34.739Z"
+  },
+  {
+    "sessionId": 1749943250,
+    "messageId": 3,
+    "type": "user",
+    "message": "Great, also can you make the UI a little more fun?",
+    "timestamp": "2025-06-14T23:39:50.541Z"
+  }
+]
