@@ -19,7 +19,9 @@ const App: React.FC = () => {
     userResponse: '',
     isListening: false,
     isSpeaking: false,
-    conversationHistory: [],
+    conversationHistory: [
+      "AI: Hi! I'm Pi. Let's play 'Yes, and...'! You start."
+    ],
     currentGame: 'yes-and',
     liveTranscript: ''
   });
@@ -41,6 +43,13 @@ const App: React.FC = () => {
     }
   }, [transcript]);
 
+  const getSystemPrompt = () => {
+    if (gameState.currentGame === 'questions-only') {
+      return "You are an AI improv comedian named 'Pi'. You are playing the game 'Questions Only' with a human partner. You must ONLY respond with a question. Never make a statement. Your goal is to keep the rally going. Keep responses short and witty.";
+    }
+    return "You are an AI improv comedian named 'Pi'. You are playing the game 'Yes, and...'. You must always accept the reality your partner creates and then add a new element to it. Be witty, a little quirky, and keep your responses to 1-2 sentences.";
+  };
+
   const startListening = () => {
     setGameState(prev => ({ 
       ...prev, 
@@ -51,61 +60,159 @@ const App: React.FC = () => {
     SpeechRecognition.startListening({ continuous: true });
   };
 
-  const stopListening = () => {
+  const stopListening = async () => {
     setGameState(prev => ({ 
       ...prev, 
       isListening: false,
-      liveTranscript: '' 
+      isSpeaking: true
     }));
     SpeechRecognition.stopListening();
-  };
 
-  const handleSubmit = async () => {
-    if (!gameState.userResponse) return;
-
-    setGameState(prev => ({ ...prev, isSpeaking: true }));
-    
     try {
-      // Generate next prompt
+      // Generate AI response using Inflection AI
+      console.log('Generating AI response...');
       const promptResponse = await generateNextPrompt(
         gameState.userResponse,
         gameState.conversationHistory
       );
+      console.log('AI Response:', promptResponse);
 
-      // Generate voice response
+      // Generate voice response using Resemble AI
+      console.log('Generating voice response...');
       const voiceResponse = await generateVoiceResponse(promptResponse.prompt);
+      console.log('Voice Response:', voiceResponse);
       
-      // Play the audio response
-      await playAudio(voiceResponse.audio_url);
-      
-      // Update game state
+      // Update conversation history before playing audio
       setGameState(prev => ({
         ...prev,
-        currentPrompt: promptResponse.prompt,
-        userResponse: '',
-        isSpeaking: false,
-        liveTranscript: '',
         conversationHistory: [
           ...prev.conversationHistory,
           `User: ${prev.userResponse}`,
           `AI: ${promptResponse.prompt}`
         ].slice(-6), // Keep last 3 exchanges
       }));
+
+      // Play the audio response
+      console.log('Playing audio response...');
+      console.log('Audio URL:', voiceResponse.audio_url);
+      try {
+        await playAudio(voiceResponse.audio_url);
+        console.log('Audio playback completed');
+      } catch (audioError) {
+        console.error('Audio playback error:', audioError);
+        // Try to play audio directly as a fallback
+        const audio = new Audio(voiceResponse.audio_url);
+        audio.onerror = (e) => console.error('Direct audio playback error:', e);
+        audio.onended = () => console.log('Direct audio playback completed');
+        await audio.play();
+      }
+      
+      // Update final state
+      setGameState(prev => ({
+        ...prev,
+        currentPrompt: promptResponse.prompt,
+        userResponse: '',
+        isSpeaking: false,
+        liveTranscript: ''
+      }));
       
       resetTranscript();
     } catch (error) {
       console.error('Error in conversation:', error);
-      setGameState(prev => ({ ...prev, isSpeaking: false }));
+      setGameState(prev => ({ 
+        ...prev, 
+        isSpeaking: false,
+        liveTranscript: ''
+      }));
     }
   };
 
-  const selectGame = (game: 'yes-and' | 'questions-only') => {
+  const selectGame = async (game: 'yes-and' | 'questions-only') => {
+    const welcomeMessage = game === 'yes-and' 
+      ? "Okay, let's play 'Yes, and...'! I'll start: I'm walking through a magical forest where the trees whisper secrets."
+      : "Okay, let's play 'Questions Only'! I'll start: What brings you to this mysterious place?";
+
     setGameState(prev => ({
       ...prev,
       currentGame: game,
-      conversationHistory: [],
-      currentPrompt: `Okay, let's play '${game === 'yes-and' ? 'Yes, and...' : 'Questions Only'}'! You start.`
+      conversationHistory: [`AI: ${welcomeMessage}`],
+      currentPrompt: welcomeMessage,
+      isSpeaking: true
     }));
+
+    try {
+      // Generate voice response for the welcome message
+      const voiceResponse = await generateVoiceResponse(welcomeMessage);
+      await playAudio(voiceResponse.audio_url);
+      
+      setGameState(prev => ({
+        ...prev,
+        isSpeaking: false
+      }));
+    } catch (error) {
+      console.error('Error playing welcome message:', error);
+      setGameState(prev => ({
+        ...prev,
+        isSpeaking: false
+      }));
+    }
+  };
+
+  const testServices = async () => {
+    try {
+      // Debug environment variables
+      console.log('Environment Variables Debug:', {
+        inflectionKey: process.env.REACT_APP_INFLECTION_API_KEY,
+        resembleKey: process.env.REACT_APP_RESEMBLE_API_KEY,
+        resembleProjectId: process.env.REACT_APP_RESEMBLE_PROJECT_ID
+      });
+
+      // Test Inflection AI
+      console.log('Testing Inflection AI...');
+      const testPrompt = "The sky is blue and the grass is green.";
+      console.log('Test prompt:', testPrompt);
+      console.log('Environment variables:', {
+        inflectionKey: process.env.REACT_APP_INFLECTION_API_KEY ? 'Present' : 'Missing',
+        resembleKey: process.env.REACT_APP_RESEMBLE_API_KEY ? 'Present' : 'Missing',
+        resembleProjectId: process.env.REACT_APP_RESEMBLE_PROJECT_ID ? 'Present' : 'Missing'
+      });
+      
+      const promptResponse = await generateNextPrompt(
+        testPrompt,
+        ["AI: Let's test the services!"]
+      );
+      console.log('Inflection AI Response:', promptResponse);
+
+      // Test Resemble AI
+      console.log('Testing Resemble AI...');
+      const voiceResponse = await generateVoiceResponse(promptResponse.prompt);
+      console.log('Resemble AI Response:', voiceResponse);
+      
+      // Test audio playback
+      console.log('Testing audio playback...');
+      console.log('Audio URL:', voiceResponse.audio_url);
+      
+      try {
+        await playAudio(voiceResponse.audio_url);
+        console.log('Audio playback completed');
+      } catch (audioError) {
+        console.error('Audio playback error:', audioError);
+        // Try to play audio directly as a fallback
+        const audio = new Audio(voiceResponse.audio_url);
+        audio.onerror = (e) => console.error('Direct audio playback error:', e);
+        audio.onended = () => console.log('Direct audio playback completed');
+        await audio.play();
+      }
+      
+      alert('Services test completed! Check console for details.');
+    } catch (error) {
+      console.error('Service test failed:', error);
+      if (error instanceof Error) {
+        alert(`Service test failed: ${error.message}\nCheck console for details.`);
+      } else {
+        alert('Service test failed! Check console for details.');
+      }
+    }
   };
 
   if (!browserSupportsSpeechRecognition) {
@@ -120,6 +227,12 @@ const App: React.FC = () => {
           <h1 className="text-4xl font-bold text-white">Improv Games with Pi</h1>
           <p className="text-lg text-gray-400 mt-2">A real-time conversational improv agent</p>
           <p className="text-sm text-blue-400 mt-1">Powered by Inflection AI</p>
+          <button
+            onClick={testServices}
+            className="mt-4 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm text-gray-300 transition-colors"
+          >
+            Test Services
+          </button>
         </header>
 
         {/* Main Interaction Area */}
@@ -188,13 +301,18 @@ const App: React.FC = () => {
               const [speaker, text] = message.split(': ');
               const isAI = speaker === 'AI';
               return (
-                <div key={index} className="flex items-start gap-3 animate-fade-in">
+                <div key={index} className={`flex items-start gap-3 animate-fade-in ${isAI ? 'flex-row-reverse' : ''}`}>
                   <span className={`flex-shrink-0 w-8 h-8 rounded-full ${
                     isAI ? 'bg-purple-500/80' : 'bg-blue-500/80'
                   } flex items-center justify-center font-bold text-sm`}>
                     {isAI ? 'PI' : 'YOU'}
                   </span>
-                  <div className="bg-gray-700 rounded-lg p-3 text-gray-300">
+                  <div className={`rounded-lg p-3 max-w-[80%] ${
+                    isAI 
+                      ? 'bg-purple-600/30 text-purple-100' 
+                      : 'bg-blue-600/30 text-blue-100'
+                  }`}>
+                    <p className="text-sm font-medium mb-1">{isAI ? 'Pi' : 'You'}</p>
                     <p>{text}</p>
                   </div>
                 </div>
@@ -206,7 +324,8 @@ const App: React.FC = () => {
                 <span className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-500/80 flex items-center justify-center font-bold text-sm">
                   YOU
                 </span>
-                <div className="bg-gray-700/50 rounded-lg p-3 text-gray-400">
+                <div className="bg-blue-600/30 rounded-lg p-3 max-w-[80%] text-blue-100">
+                  <p className="text-sm font-medium mb-1">You (speaking...)</p>
                   <p>{gameState.liveTranscript}</p>
                 </div>
               </div>
