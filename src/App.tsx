@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import SpeechRecognition, { useSpeechRecognition } from 'react-speech-recognition';
-import { generateVoiceResponse, playAudio } from './services/resembleService.ts';
+import { generateVoiceResponse, playAudio, testResembleCredentials, listProjects, testWelcomeMessage, testGameStart } from './services/resembleService.ts';
 import { generateNextPrompt } from './services/promptService.ts';
 
 interface GameState {
@@ -50,7 +50,42 @@ const App: React.FC = () => {
     return "You are an AI improv comedian named 'Pi'. You are playing the game 'Yes, and...'. You must always accept the reality your partner creates and then add a new element to it. Be witty, a little quirky, and keep your responses to 1-2 sentences.";
   };
 
-  const startListening = () => {
+  const startListening = async () => {
+    // If this is the first interaction, start with AI's opening line
+    if (gameState.conversationHistory.length === 1) {
+      const welcomeMessage = gameState.currentGame === 'yes-and' 
+        ? "I'm walking through a magical forest where the trees whisper secrets. What do you see?"
+        : "What brings you to this mysterious place?";
+
+      setGameState(prev => ({
+        ...prev,
+        isSpeaking: true,
+        conversationHistory: [...prev.conversationHistory, `AI: ${welcomeMessage}`],
+        currentPrompt: welcomeMessage
+      }));
+
+      try {
+        console.log('Generating welcome message voice...');
+        const voiceResponse = await generateVoiceResponse(welcomeMessage);
+        console.log('Welcome message voice response:', voiceResponse);
+        
+        if (voiceResponse.audio_url) {
+          console.log('Playing welcome message audio...');
+          await playAudio(voiceResponse.audio_url);
+          console.log('Welcome message audio played successfully');
+        } else {
+          console.error('No audio URL in welcome message response');
+        }
+      } catch (error) {
+        console.error('Error with welcome message:', error);
+      } finally {
+        setGameState(prev => ({
+          ...prev,
+          isSpeaking: false
+        }));
+      }
+    }
+
     setGameState(prev => ({ 
       ...prev, 
       isListening: true,
@@ -93,18 +128,22 @@ const App: React.FC = () => {
       }));
 
       // Play the audio response
-      console.log('Playing audio response...');
-      console.log('Audio URL:', voiceResponse.audio_url);
-      try {
-        await playAudio(voiceResponse.audio_url);
-        console.log('Audio playback completed');
-      } catch (audioError) {
-        console.error('Audio playback error:', audioError);
-        // Try to play audio directly as a fallback
-        const audio = new Audio(voiceResponse.audio_url);
-        audio.onerror = (e) => console.error('Direct audio playback error:', e);
-        audio.onended = () => console.log('Direct audio playback completed');
-        await audio.play();
+      if (voiceResponse.audio_url) {
+        console.log('Playing audio response...');
+        console.log('Audio URL:', voiceResponse.audio_url);
+        try {
+          await playAudio(voiceResponse.audio_url);
+          console.log('Audio playback completed');
+        } catch (audioError) {
+          console.error('Audio playback error:', audioError);
+          // Try to play audio directly as a fallback
+          const audio = new Audio(voiceResponse.audio_url);
+          audio.onerror = (e) => console.error('Direct audio playback error:', e);
+          audio.onended = () => console.log('Direct audio playback completed');
+          await audio.play();
+        }
+      } else {
+        console.error('No audio URL in voice response');
       }
       
       // Update final state
@@ -220,78 +259,112 @@ const App: React.FC = () => {
   }
 
   return (
-    <div className="bg-gray-900 text-gray-200 flex flex-col items-center justify-center min-h-screen p-4 antialiased">
-      <div className="w-full max-w-2xl mx-auto flex flex-col space-y-8">
-        {/* Header */}
-        <header className="text-center">
-          <h1 className="text-4xl font-bold text-white">Improv Games with Pi</h1>
-          <p className="text-lg text-gray-400 mt-2">A real-time conversational improv agent</p>
-          <p className="text-sm text-blue-400 mt-1">Powered by Inflection AI</p>
+    <div className="min-h-screen bg-gray-900 text-gray-200 flex flex-col">
+      <header className="p-4 border-b border-gray-800">
+        <h1 className="text-2xl font-bold text-center">Improv Games with Pi</h1>
+      </header>
+
+      <main className="flex-1 container mx-auto px-4 py-8 flex flex-col items-center">
+        {/* Add test buttons at the top */}
+        <div className="flex gap-4 mb-4">
           <button
-            onClick={testServices}
-            className="mt-4 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm text-gray-300 transition-colors"
+            onClick={async () => {
+              const result = await testResembleCredentials();
+              alert(result.message);
+            }}
+            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
           >
-            Test Services
+            Test Resemble Credentials
           </button>
-        </header>
 
-        {/* Main Interaction Area */}
-        <main className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-6 md:p-8 flex flex-col items-center justify-center space-y-6 shadow-2xl shadow-blue-500/10">
-          {/* Game Selection */}
-          <div className="w-full mb-4">
-            <p className="text-center text-gray-400 text-sm mb-2">Choose a Game</p>
-            <div className="flex justify-center gap-4">
-              <button
-                onClick={() => selectGame('yes-and')}
-                className={`game-btn px-4 py-2 rounded-lg border-2 border-gray-600 bg-gray-800 text-gray-400 font-semibold transition-all hover:bg-gray-700 ${
-                  gameState.currentGame === 'yes-and' ? 'active' : ''
-                }`}
-              >
-                Yes, and...
-              </button>
-              <button
-                onClick={() => selectGame('questions-only')}
-                className={`game-btn px-4 py-2 rounded-lg border-2 border-gray-600 bg-gray-800 text-gray-400 font-semibold transition-all hover:bg-gray-700 ${
-                  gameState.currentGame === 'questions-only' ? 'active' : ''
-                }`}
-              >
-                Questions Only
-              </button>
-            </div>
-          </div>
-
-          {/* Status Indicator */}
-          <div className="text-center">
-            <p className="text-xl font-semibold text-blue-300 transition-all duration-300">
-              {gameState.isListening ? 'Listening...' : 
-               gameState.isSpeaking ? 'Pi is Speaking' : 
-               `Ready for '${gameState.currentGame === 'yes-and' ? 'Yes, and...' : 'Questions Only'}'!`}
-            </p>
-            <p className="text-sm text-gray-500 mt-1 h-5 transition-all duration-300">
-              {gameState.isListening ? "Go ahead, I'm all ears!" :
-               gameState.isSpeaking ? "Listen to the AI's response." :
-               "Click the mic when you're ready."}
-            </p>
-          </div>
-
-          {/* Microphone Button */}
           <button
-            onClick={gameState.isListening ? stopListening : startListening}
-            className={`w-24 h-24 md:w-28 md:h-28 rounded-full flex items-center justify-center transition-all duration-300 ease-in-out ${
-              gameState.isListening 
-                ? 'bg-red-600 hover:bg-red-500 listening-glow' 
-                : 'bg-blue-600 hover:bg-blue-500'
-            } focus:outline-none focus:ring-4 focus:ring-blue-500 focus:ring-opacity-50 shadow-lg ${
-              gameState.isSpeaking ? 'opacity-50 cursor-not-allowed' : ''
+            onClick={async () => {
+              const result = await listProjects();
+              if (result.success && result.projectUuid) {
+                alert(`Default Project:\n\nName: ${result.message}\nID: ${result.projectUuid}`);
+              } else {
+                alert(result.message);
+              }
+            }}
+            className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
+          >
+            Get Default Project
+          </button>
+
+          <button
+            onClick={async () => {
+              const result = await testWelcomeMessage();
+              alert(result.message);
+            }}
+            className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors"
+          >
+            Test Welcome Message
+          </button>
+
+          <button
+            onClick={async () => {
+              const result = await testGameStart();
+              alert(result.message);
+            }}
+            className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition-colors"
+          >
+            Test Game Start
+          </button>
+        </div>
+
+        {/* Game Selection */}
+        <div className="flex gap-4 mb-8">
+          <button
+            onClick={() => selectGame('yes-and')}
+            className={`game-btn px-4 py-2 rounded-lg border-2 border-gray-600 bg-gray-800 text-gray-400 font-semibold transition-all hover:bg-gray-700 ${
+              gameState.currentGame === 'yes-and' ? 'active' : ''
             }`}
-            disabled={gameState.isSpeaking}
           >
-            <svg className="w-10 h-10 md:w-12 md:h-12 text-white" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"></path>
-              <path d="M17 11h-1c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92z"></path>
-            </svg>
+            Yes, and...
           </button>
-        </main>
+          <button
+            onClick={() => selectGame('questions-only')}
+            className={`game-btn px-4 py-2 rounded-lg border-2 border-gray-600 bg-gray-800 text-gray-400 font-semibold transition-all hover:bg-gray-700 ${
+              gameState.currentGame === 'questions-only' ? 'active' : ''
+            }`}
+          >
+            Questions Only
+          </button>
+        </div>
+
+        {/* Status Indicator */}
+        <div className="text-center">
+          <p className="text-xl font-semibold text-blue-300 transition-all duration-300">
+            {gameState.isListening ? 'Listening...' : 
+             gameState.isSpeaking ? 'Pi is Speaking' : 
+             `Ready for '${gameState.currentGame === 'yes-and' ? 'Yes, and...' : 'Questions Only'}'!`}
+          </p>
+          <p className="text-sm text-gray-500 mt-1 h-5 transition-all duration-300">
+            {gameState.isListening ? "Go ahead, I'm all ears!" :
+             gameState.isSpeaking ? "Listen to the AI's response." :
+             "Click the blob when you're ready."}
+          </p>
+        </div>
+
+        {/* Animated Blob Button */}
+        <button
+          onClick={gameState.isListening ? stopListening : startListening}
+          className={`relative w-32 h-32 md:w-40 md:h-40 transition-all duration-300 ease-in-out ${
+            gameState.isSpeaking ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+          }`}
+          disabled={gameState.isSpeaking}
+        >
+          <div className={`absolute inset-0 ${
+            gameState.isListening 
+              ? 'bg-gradient-to-r from-purple-500 to-blue-500 blob-listening' 
+              : 'bg-gradient-to-r from-blue-500 to-purple-500 blob'
+          } transition-all duration-300`} />
+          <div className={`absolute inset-0 flex items-center justify-center text-white text-sm font-medium ${
+            gameState.isListening ? 'opacity-100' : 'opacity-0'
+          } transition-opacity duration-300`}>
+            {gameState.isListening ? 'Listening...' : 'Click to Start'}
+          </div>
+        </button>
 
         {/* Transcript Area */}
         <div className="w-full bg-gray-800/50 backdrop-blur-sm rounded-2xl p-4 md:p-6 shadow-lg">
@@ -337,7 +410,7 @@ const App: React.FC = () => {
         <footer className="text-center text-gray-600 text-sm">
           <p>Human-AI Interaction Day Hackathon &middot; AGI House</p>
         </footer>
-      </div>
+      </main>
     </div>
   );
 };

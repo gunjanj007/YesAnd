@@ -19,6 +19,14 @@
   .game-btn.active {
     @apply bg-gray-700 text-gray-200 border-blue-500;
   }
+
+  .blob {
+    animation: blob-animation 8s infinite;
+  }
+
+  .blob-listening {
+    animation: blob-listening 2s infinite;
+  }
 }
 
 @keyframes pulse-glow {
@@ -34,6 +42,33 @@
   to { 
     opacity: 1; 
     transform: translateY(0); 
+  }
+}
+
+@keyframes blob-animation {
+  0% {
+    border-radius: 60% 40% 30% 70%/60% 30% 70% 40%;
+  }
+  50% {
+    border-radius: 30% 60% 70% 40%/50% 60% 30% 60%;
+  }
+  100% {
+    border-radius: 60% 40% 30% 70%/60% 30% 70% 40%;
+  }
+}
+
+@keyframes blob-listening {
+  0% {
+    border-radius: 60% 40% 30% 70%/60% 30% 70% 40%;
+    transform: scale(1);
+  }
+  50% {
+    border-radius: 30% 60% 70% 40%/50% 60% 30% 60%;
+    transform: scale(1.1);
+  }
+  100% {
+    border-radius: 60% 40% 30% 70%/60% 30% 70% 40%;
+    transform: scale(1);
   }
 }
 
