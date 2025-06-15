@@ -342,13 +342,20 @@ function App() {
 
   // Effect to manage listening state based on game mode and AI speaking status
   useEffect(() => {
-    if (gameMode !== 'MainMenu' && !aiSpeaking && !isListening) {
-      // If a game is active, AI is not speaking, and we are not listening, try to start.
-      // This can help resume listening after AI finishes speaking or if recognition stops unexpectedly.
-      startListening();
-    } else if ((gameMode === 'MainMenu' || aiSpeaking) && isListening) {
-      // If we are back in menu, or AI is speaking, but we are somehow still listening, stop.
-      stopListening();
+    if (gameMode !== 'MainMenu') {
+      // We are in a game ('YesAnd' or 'QuestionsOnly')
+      if (!aiSpeaking && !isListening) {
+        startListening(); // Start if quiet and not already listening
+      } else if (aiSpeaking && isListening) {
+        // Stop if AI is speaking and we are somehow still listening (in game)
+        // This case handles when AI starts speaking, we should stop user's mic.
+        stopListening();
+      }
+    } else {
+      // We are in 'MainMenu'
+      if (isListening) {
+        stopListening(); // Stop if in main menu and listening
+      }
     }
   }, [gameMode, aiSpeaking, isListening, startListening, stopListening]);
 
@@ -421,7 +428,8 @@ function App() {
                 AI is responding...
               </div>
             )}
-            {!isListening && !aiSpeaking && gameMode !== 'MainMenu' && (
+            {/* Button is only rendered if gameMode !== 'MainMenu' due to parent conditional */}
+            {!isListening && !aiSpeaking && (
               <button className="btn-speak-now" onClick={startListening}>
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" className="bi bi-mic-fill" viewBox="0 0 16 16">
                   <path d="M5 3a3 3 0 0 1 6 0v5a3 3 0 0 1-6 0z"/>
