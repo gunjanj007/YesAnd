@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import './App.css';
 
 // IMPORTANT: Replace 'YOUR_API_KEY_HERE' with your actual Gemini API key.
-const GEMINI_API_KEY = 'YOUR_API_KEY_HERE';
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
 type Message = {
   speaker: 'user' | 'ai';
@@ -76,12 +76,12 @@ function App() {
     currentPGameMode: GameMode,
     conversationHistory: Message[]
   ): Promise<string> => {
-    if (GEMINI_API_KEY === 'YOUR_API_KEY_HERE') {
-      const warning = "Warning: GEMINI_API_KEY is set to placeholder...";
-      console.warn(warning); alert(warning);
-      return "I need a real API key!";
-    }
-    const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_API_KEY}`;
+    // if (GEMINI_API_KEY === 'YOUR_API_KEY_HERE') {
+    //   const warning = "Warning: GEMINI_API_KEY is set to placeholder...";
+    //   console.warn(warning); alert(warning);
+    //   return "I need a real API key!";
+    // }
+    const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${GEMINI_API_KEY}`;
     const contents: any[] = [];
     if (conversationHistory.length === 0) {
       if (currentPGameMode === 'YesAnd') contents.push({ role: 'user', parts: [{ text: "You are an AI improv comedian... Always start with 'Yes, and '..." }] }, { role: 'model', parts: [{ text: "Got it! You start!" }] });
